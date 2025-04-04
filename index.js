@@ -1,43 +1,35 @@
-require('dotenv').config();
-const express = require('express');
-const axios = require('axios');
-const cors = require('cors');
+require("dotenv").config();
+const express = require("express");
+const axios = require("axios");
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+const PORT = process.env.PORT || 3000;
 
-const ZALO_OA_TOKEN = process.env.ZALO_OA_ACCESS_TOKEN;
+app.get("/api/check-oa-status", async (req, res) => {
+  const accessToken = process.env.ZALO_OA_ACCESS_TOKEN;
+  const userId = req.query.userId;
 
-app.post('/api/check-oa-status', async (req, res) => {
-  const { user_id } = req.body;
-
-  if (!user_id) {
-    return res.status(400).json({ error: 'Missing user_id' });
-  }
+  if (!userId) return res.status(400).json({ error: "Thiếu userId" });
 
   try {
     const response = await axios.get(
-      'https://openapi.zalo.me/v2.0/oa/getprofile',
+      `https://openapi.zalo.me/v2.0/oa/getprofile`,
       {
         params: {
-          data: JSON.stringify({ user_id }),
-        },
-        headers: {
-          access_token: ZALO_OA_TOKEN,
+          access_token: accessToken,
+          data: JSON.stringify({ user_id: userId }),
         },
       }
     );
 
-    const isFollowing = response.data?.data?.follow === true;
+    const isFollowing = response.data.data?.is_subscribed === 1;
     res.json({ isFollowing });
-  } catch (err) {
-    console.error("Zalo API error:", err.response?.data || err.message);
-    res.status(500).json({ error: 'Zalo API failed' });
+  } catch (error) {
+    console.error("❌ Lỗi Zalo API:", error?.response?.data || error.message);
+    res.status(500).json({ error: "Lỗi khi kiểm tra trạng thái OA" });
   }
 });
 
-const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`🚀 Zalo OA Backend running at http://localhost:${PORT}`);
+  console.log(`✅ Backend đang chạy tại http://localhost:${PORT}`);
 });
